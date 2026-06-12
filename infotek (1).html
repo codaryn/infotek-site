@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infotek Brasil — Informática, Automação Comercial e CFTV</title>
+<meta name="description" content="Infotek Brasil: infraestrutura tecnológica completa para o seu negócio. Kits computador, impressoras térmicas, acessórios de PDV e segurança CFTV.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   INFOTEK ORB — sistema de design
+   Paleta extraída da logomarca (esfera metálica azul)
+   ============================================================ */
+:root{
+  --bg:        #020610;   /* abismo navy */
+  --bg-2:      #050C1A;
+  --panel:     #071126;
+  --blue-deep: #0A2C8F;   /* swatch escuro da marca */
+  --blue:      #1466F0;   /* swatch royal da marca */
+  --cyan:      #22C8FF;   /* brilho neon da esfera */
+  --ice:       #A9D6F2;   /* swatch claro da marca */
+  --text:      #E8F1FB;
+  --muted:     #9DB3CC;
+  --line:      rgba(150,190,255,.12);
+  --line-soft: rgba(150,190,255,.06);
+  --glow:      rgba(34,200,255,.55);
+  --font-d:'Space Grotesk',system-ui,sans-serif;
+  --font-m:'JetBrains Mono',ui-monospace,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{background:var(--bg)}
+body{
+  font-family:var(--font-d);
+  color:var(--text);
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  cursor:none;
+}
+::selection{background:var(--cyan);color:#021}
+a{color:inherit}
+img{max-width:100%}
+
+/* ---------- camadas fixas (cena 3D, vinheta, grade) ---------- */
+#orb{position:fixed;inset:0;z-index:0;display:block}
+.vignette{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(20,102,240,.10), transparent 55%),
+    radial-gradient(140% 120% at 50% 120%, rgba(2,6,16,.95), transparent 60%),
+    linear-gradient(rgba(2,6,16,.25), rgba(2,6,16,.25));
+}
+.gridlines{
+  position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.55;
+  background-image:
+    linear-gradient(to right, var(--line-soft) 1px, transparent 1px);
+  background-size:25% 100%;
+  background-position:12.5% 0;
+  mask-image:linear-gradient(#000 70%, transparent);
+  -webkit-mask-image:linear-gradient(#000 70%, transparent);
+}
+.noise{
+  position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+/* ---------- HUD (moldura técnica estilo igloo) ---------- */
+.hud{position:fixed;z-index:40;font-family:var(--font-m);font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  pointer-events:none;user-select:none;transition:opacity .8s var(--ease)}
+.hud b{color:var(--cyan);font-weight:500}
+.hud-tl{top:84px;left:24px}
+.hud-tr{top:84px;right:24px;text-align:right}
+.hud-bl{bottom:20px;left:24px}
+.hud-br{bottom:20px;right:24px;text-align:right}
+#scrollPct{display:inline-block;min-width:4ch;color:var(--ice)}
+.hud-bar{
+  position:fixed;top:0;left:0;height:2px;width:100%;z-index:60;
+  background:rgba(150,190,255,.08)
+}
+.hud-bar i{
+  display:block;height:100%;width:0%;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  box-shadow:0 0 12px var(--glow);
+}
+
+/* ---------- cursor customizado ---------- */
+.cur,.curR{position:fixed;top:0;left:0;z-index:120;pointer-events:none;border-radius:50%;
+  transform:translate(-50%,-50%)}
+.cur{width:6px;height:6px;background:var(--cyan);box-shadow:0 0 10px var(--glow)}
+.curR{width:38px;height:38px;border:1px solid rgba(34,200,255,.5);
+  transition:width .25s var(--ease),height .25s var(--ease),border-color .25s,background .25s}
+.curR.hot{width:64px;height:64px;border-color:var(--cyan);background:rgba(34,200,255,.07)}
+@media (hover:none){ .cur,.curR{display:none} body{cursor:auto} }
+
+/* ---------- preloader ---------- */
+#loader{position:fixed;inset:0;z-index:200;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  transition:opacity .9s var(--ease),visibility .9s}
+#loader.done{opacity:0;visibility:hidden}
+.ld-orb{width:84px;height:84px;border-radius:50%;position:relative;
+  background:radial-gradient(circle at 32% 28%, var(--ice), var(--blue) 45%, var(--blue-deep) 75%, #051234 100%);
+  box-shadow:0 0 50px rgba(20,102,240,.55), inset -8px -10px 24px rgba(0,0,0,.55);
+  animation:ldPulse 2.2s ease-in-out infinite}
+.ld-orb::after{content:'';position:absolute;inset:-14px;border-radius:50%;
+  border:1px solid rgba(34,200,255,.45);border-left-color:transparent;border-right-color:transparent;
+  transform:rotate(-24deg);animation:ldSpin 3s linear infinite}
+@keyframes ldPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes ldSpin{to{transform:rotate(336deg)}}
+.ld-count{font-family:var(--font-m);font-size:clamp(40px,8vw,72px);font-weight:300;
+  color:var(--ice);letter-spacing:.04em}
+.ld-count small{font-size:.35em;color:var(--muted)}
+.ld-boot{font-family:var(--font-m);font-size:10px;letter-spacing:.2em;color:var(--muted);
+  text-transform:uppercase;min-height:14px}
+.ld-boot b{color:var(--cyan);font-weight:400}
+
+/* ---------- header ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:80;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:linear-gradient(rgba(2,6,16,.78), rgba(2,6,16,.35) 70%, transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-soft)}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand svg{height:40px;width:auto;filter:drop-shadow(0 0 12px rgba(20,102,240,.5))}
+.brand-name{font-weight:700;letter-spacing:.02em;font-size:18px}
+.brand-name span{color:var(--cyan)}
+.brand-tag{display:block;font-family:var(--font-m);font-size:8.5px;letter-spacing:.34em;
+  color:var(--muted);text-transform:uppercase;margin-top:1px}
+nav{display:flex;gap:6px;align-items:center}
+nav a{font-family:var(--font-m);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:4px;
+  transition:color .3s,background .3s;position:relative}
+nav a::before{content:attr(data-i);color:var(--blue);margin-right:6px;font-size:9px}
+nav a:hover,nav a.act{color:var(--ice);background:rgba(34,200,255,.06)}
+.nav-cta{font-family:var(--font-m);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--cyan);text-decoration:none;border:1px solid rgba(34,200,255,.45);
+  padding:9px 16px;border-radius:4px;transition:all .3s var(--ease);white-space:nowrap}
+.nav-cta:hover{background:rgba(34,200,255,.12);box-shadow:0 0 18px var(--glow)}
+
+/* ---------- base de conteúdo ---------- */
+main{position:relative;z-index:10}
+section{position:relative;padding:18vh 6vw}
+.eyebrow{display:flex;align-items:center;gap:14px;font-family:var(--font-m);
+  font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--cyan);margin-bottom:26px}
+.eyebrow::before{content:'';width:34px;height:1px;background:var(--cyan);box-shadow:0 0 8px var(--glow)}
+.eyebrow em{font-style:normal;color:var(--muted)}
+h2{font-size:clamp(34px,5.4vw,68px);font-weight:600;line-height:1.04;letter-spacing:-.02em;
+  max-width:14ch}
+h2 .ln{color:transparent;-webkit-text-stroke:1.3px rgba(205,231,250,.95)}
+.lead{color:var(--muted);font-size:clamp(16px,1.4vw,18.5px);max-width:52ch;margin-top:22px;font-weight:400}
+.lead strong{color:var(--ice);font-weight:500}
+
+/* reveal on scroll */
+.rev{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+.rev.on{opacity:1;transform:none}
+.rev.d1{transition-delay:.08s}.rev.d2{transition-delay:.16s}.rev.d3{transition-delay:.24s}.rev.d4{transition-delay:.32s}
+
+/* ---------- HERO ---------- */
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  align-items:center;text-align:center;padding-top:14vh}
+.hero-kicker{font-family:var(--font-m);font-size:11px;letter-spacing:.42em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:3vh}
+.hero-kicker b{color:var(--cyan);font-weight:400}
+.hero h1{
+  font-size:clamp(58px,16.5vw,224px);
+  font-weight:700;letter-spacing:-.045em;line-height:.92;
+  background:linear-gradient(180deg,#FFFFFF 12%,#CDE7FA 42%,#5EA0FF 76%,var(--blue));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 40px rgba(20,102,240,.35));
+  user-select:none}
+.hero-sub{margin-top:3.2vh;display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+  font-family:var(--font-m);font-size:clamp(10px,1.2vw,13px);letter-spacing:.26em;
+  text-transform:uppercase;color:var(--ice)}
+.hero-sub i{font-style:normal;color:var(--blue)}
+.hero-cta{margin-top:5vh;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.btn{position:relative;display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--font-m);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  text-decoration:none;padding:16px 30px;border-radius:6px;overflow:hidden;
+  transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.btn-fill{color:#fff;background:linear-gradient(135deg,var(--blue),var(--blue-deep));
+  border:1px solid rgba(169,214,242,.25);box-shadow:0 8px 30px rgba(20,102,240,.4)}
+.btn-fill::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+  transform:translateX(-120%);transition:transform .7s var(--ease)}
+.btn-fill:hover::after{transform:translateX(120%)}
+.btn-fill:hover{box-shadow:0 10px 42px var(--glow)}
+.btn-ghost{color:var(--cyan);border:1px solid rgba(34,200,255,.4)}
+.btn-ghost:hover{background:rgba(34,200,255,.08);box-shadow:0 0 24px rgba(34,200,255,.25)}
+.hero-scroll{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+  font-family:var(--font-m);font-size:9.5px;letter-spacing:.34em;text-transform:uppercase;
+  color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.hero-scroll::after{content:'';width:1px;height:44px;
+  background:linear-gradient(var(--cyan),transparent);animation:drip 2s var(--ease) infinite}
+@keyframes drip{0%{transform:scaleY(0);transform-origin:top}55%{transform:scaleY(1);transform-origin:top}
+  56%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ---------- marquee ---------- */
+.marquee{border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:18px 0;overflow:hidden;background:rgba(7,17,38,.4);backdrop-filter:blur(4px)}
+.mq-track{display:flex;gap:54px;width:max-content;animation:mq 30s linear infinite;
+  font-family:var(--font-m);font-size:12px;letter-spacing:.34em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap}
+.mq-track b{color:var(--ice);font-weight:400}
+.mq-track i{font-style:normal;color:var(--blue)}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ---------- SOBRE ---------- */
+.sobre-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.8fr);gap:6vw;align-items:start}
+.sobre-spec{display:flex;flex-direction:column;gap:0;margin-top:1vh}
+.spec{display:grid;grid-template-columns:44px 1fr;gap:16px;padding:20px 0;
+  border-top:1px solid var(--line);align-items:start}
+.spec:last-child{border-bottom:1px solid var(--line)}
+.spec-ic{display:grid;place-items:center;width:42px;height:42px;border-radius:9px;
+  border:1px solid rgba(34,200,255,.28);background:rgba(20,102,240,.10);color:var(--cyan)}
+.spec-ic svg{width:20px;height:20px}
+.spec h4{font-size:17px;font-weight:600;color:var(--ice);margin-bottom:4px}
+.spec p{font-size:14px;color:var(--muted);font-weight:400}
+
+/* ---------- PRODUTOS (linhas expansíveis) ---------- */
+.prods{margin-top:7vh;border-top:1px solid var(--line)}
+.prow{position:relative;border-bottom:1px solid var(--line);overflow:hidden;
+  transition:background .5s var(--ease)}
+.prow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0%;
+  background:linear-gradient(90deg,rgba(20,102,240,.16),rgba(34,200,255,.04) 60%,transparent);
+  transition:width .6s var(--ease);pointer-events:none}
+.prow:hover::before,.prow:focus-within::before{width:100%}
+.prow-head{display:grid;grid-template-columns:70px 1fr auto;gap:24px;align-items:center;
+  padding:34px 10px;position:relative}
+.prow-i{font-family:var(--font-m);font-size:12px;color:var(--blue);letter-spacing:.2em}
+.prow-t{font-size:clamp(24px,3.4vw,44px);font-weight:600;letter-spacing:-.015em;
+  transition:transform .5s var(--ease),color .4s}
+.prow:hover .prow-t{transform:translateX(14px);color:#fff}
+.prow-ic{display:grid;place-items:center;width:54px;height:54px;border-radius:11px;
+  border:1px solid rgba(34,200,255,.3);background:rgba(20,102,240,.10);color:var(--cyan);
+  filter:drop-shadow(0 0 10px var(--glow));transition:transform .5s var(--ease),border-color .4s}
+.prow-ic svg{width:25px;height:25px}
+.prow:hover .prow-ic{transform:rotate(6deg) scale(1.08);border-color:var(--cyan)}
+.prow-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .6s var(--ease)}
+.prow:hover .prow-body,.prow:focus-within .prow-body{grid-template-rows:1fr}
+.prow-inner{overflow:hidden;display:grid;grid-template-columns:70px 1fr;gap:24px}
+.prow-desc{padding:0 10px 34px 0;max-width:62ch;color:#B6C8DC;font-weight:400;
+  font-size:15.5px}
+.prow-desc .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.tag{font-family:var(--font-m);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ice);border:1px solid rgba(169,214,242,.25);padding:5px 10px;border-radius:99px;
+  background:rgba(20,102,240,.08)}
+
+/* ---------- NÚMEROS ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:7vh;
+  border:1px solid var(--line);background:var(--line-soft)}
+.stat{background:rgba(5,12,26,.72);backdrop-filter:blur(6px);padding:44px 34px;
+  transition:background .4s}
+.stat:hover{background:rgba(10,28,60,.8)}
+.stat b{display:block;font-family:var(--font-m);font-weight:300;
+  font-size:clamp(42px,5.5vw,76px);color:var(--ice);letter-spacing:-.02em;line-height:1}
+.stat b small{font-size:.42em;color:var(--cyan)}
+.stat span{display:block;margin-top:14px;font-family:var(--font-m);font-size:10.5px;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- MARCAS ---------- */
+.brands-wrap{margin-top:6vh;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:34px 0;overflow:hidden}
+.br-track{display:flex;gap:18px;width:max-content;animation:mq 26s linear infinite}
+.brands-wrap:hover .br-track{animation-play-state:paused}
+.chip{font-family:var(--font-m);font-size:13px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--line);padding:16px 30px;border-radius:8px;
+  background:rgba(7,17,38,.55);white-space:nowrap;transition:all .35s var(--ease)}
+.chip:hover{color:var(--ice);border-color:rgba(34,200,255,.5);
+  box-shadow:0 0 22px rgba(34,200,255,.2);transform:translateY(-4px)}
+.brands-note{margin-top:22px;font-family:var(--font-m);font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted)}
+
+/* ---------- CONTATO ---------- */
+.contato{text-align:center}
+.contato h2{margin-inline:auto}
+.ct-card{margin:7vh auto 0;max-width:760px;padding:54px 6vw;border-radius:16px;
+  background:linear-gradient(160deg,rgba(10,28,72,.55),rgba(5,12,26,.75));
+  border:1px solid rgba(34,200,255,.18);backdrop-filter:blur(12px);
+  box-shadow:0 30px 80px rgba(0,0,0,.5), inset 0 1px 0 rgba(169,214,242,.12);
+  position:relative;overflow:hidden}
+.ct-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.7}
+.ct-num{font-family:var(--font-m);font-weight:300;font-size:clamp(28px,5vw,52px);
+  color:#fff;letter-spacing:.02em;text-decoration:none;display:inline-block;
+  transition:color .3s,text-shadow .3s}
+.ct-num:hover{color:var(--cyan);text-shadow:0 0 26px var(--glow)}
+.ct-meta{margin-top:26px;display:flex;justify-content:center;gap:34px;flex-wrap:wrap;
+  font-family:var(--font-m);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted)}
+.ct-meta b{color:var(--ice);font-weight:400}
+.ct-actions{margin-top:38px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+
+/* ---------- footer ---------- */
+footer{position:relative;z-index:10;border-top:1px solid var(--line);
+  padding:34px 6vw;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  font-family:var(--font-m);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);background:rgba(2,6,16,.8)}
+footer b{color:var(--ice);font-weight:400}
+
+/* ---------- ícones minimalistas (botões / nav) ---------- */
+.btn svg{width:17px;height:17px;flex-shrink:0}
+.btn-fill svg{fill:currentColor}
+.nav-cta svg{width:13px;height:13px;vertical-align:-2px;margin-right:7px}
+
+/* ---------- DIFERENCIAIS ---------- */
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:7vh}
+.dcard{background:rgba(7,17,38,.66);border:1px solid var(--line);border-radius:14px;
+  padding:30px 26px;backdrop-filter:blur(8px);position:relative;overflow:hidden;
+  transition:transform .45s var(--ease),border-color .45s,box-shadow .45s}
+.dcard::before{content:'';position:absolute;inset:0 0 auto 0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0;transition:opacity .4s}
+.dcard:hover{transform:translateY(-8px);border-color:rgba(34,200,255,.45);
+  box-shadow:0 18px 44px rgba(0,102,255,.22)}
+.dcard:hover::before{opacity:.8}
+.dcard .ico{display:grid;place-items:center;width:46px;height:46px;border-radius:10px;
+  border:1px solid rgba(34,200,255,.3);background:rgba(20,102,240,.12);
+  color:var(--cyan);margin-bottom:18px}
+.dcard .ico svg{width:22px;height:22px}
+.dcard h3{font-size:17.5px;font-weight:600;color:#fff;margin-bottom:8px}
+.dcard p{font-size:14px;color:var(--muted);font-weight:400}
+
+/* ---------- CONTATO — grade de canais ---------- */
+.ct-grid{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:left}
+.cti{display:flex;gap:14px;align-items:center;padding:15px 16px;border-radius:10px;
+  border:1px solid var(--line);background:rgba(5,12,26,.55)}
+.cti .ico{display:grid;place-items:center;width:40px;height:40px;border-radius:9px;
+  border:1px solid rgba(34,200,255,.3);color:var(--cyan);flex-shrink:0}
+.cti .ico svg{width:18px;height:18px}
+.cti b{display:block;font-family:var(--font-m);font-size:9px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--muted);font-weight:500}
+.cti span{font-size:14.5px;color:#fff;font-weight:500;word-break:break-word}
+
+/* ---------- responsivo ---------- */
+@media (max-width:980px){
+  .sobre-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr}
+  .dgrid{grid-template-columns:1fr 1fr}
+  .hud-tl,.hud-tr{display:none}
+}
+@media (max-width:640px){
+  .dgrid{grid-template-columns:1fr}
+  .ct-grid{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  header{padding:12px 16px}
+  nav a{display:none}
+  nav a:last-of-type{display:block}
+  section{padding:14vh 6vw}
+  .prow-head{grid-template-columns:46px 1fr auto;gap:14px;padding:26px 4px}
+  .prow-inner{grid-template-columns:46px 1fr;gap:14px}
+  .prow .prow-body{grid-template-rows:1fr}        /* mobile: descrição sempre visível */
+  .prow-desc{font-size:14px}
+  .hud-bl,.hud-br{font-size:9px;bottom:12px}
+  .hud-bl{left:14px}.hud-br{right:14px}
+}
+/* ---------- acessibilidade / movimento reduzido ---------- */
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;transition-duration:.001s!important}
+  .rev{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ PRELOADER ============ -->
+<div id="loader" aria-hidden="true">
+  <div class="ld-orb"></div>
+  <div class="ld-count"><span id="ldNum">000</span><small>%</small></div>
+  <div class="ld-boot" id="ldBoot">INICIALIZANDO <b>ORB.SYS</b></div>
+</div>
+
+<!-- ============ CENA 3D + ATMOSFERA ============ -->
+<canvas id="orb"></canvas>
+<div class="vignette"></div>
+<div class="gridlines"></div>
+<div class="noise"></div>
+
+<!-- ============ HUD ============ -->
+<div class="hud-bar"><i id="bar"></i></div>
+<div class="hud hud-tl">INFOTEK://BR<br>ORB.RENDER <b>ATIVO</b></div>
+<div class="hud hud-tr">SÃO PAULO — SP<br>23.55°S / 46.63°W</div>
+<div class="hud hud-bl">SCROLL <b><span id="scrollPct">000</span>%</b></div>
+<div class="hud hud-br" id="hudSec">SEÇÃO <b>00 / ÓRBITA</b></div>
+
+<!-- ============ CURSOR ============ -->
+<div class="cur" id="cur"></div>
+<div class="curR" id="curR"></div>
+
+<!-- ============ HEADER ============ -->
+<header>
+  <a href="#topo" class="brand" aria-label="Infotek Brasil — início">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="gOrb" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#A9D6F2"/>
+          <stop offset="45%" stop-color="#1466F0"/>
+          <stop offset="100%" stop-color="#06173F"/>
+        </radialGradient>
+      </defs>
+      <circle cx="32" cy="32" r="22" fill="url(#gOrb)"/>
+      <ellipse cx="32" cy="34" rx="30" ry="9" stroke="#22C8FF" stroke-width="1.6"
+        fill="none" transform="rotate(-18 32 34)" stroke-dasharray="120 50" opacity=".9"/>
+      <circle cx="9" cy="42" r="2.4" fill="#22C8FF"/>
+    </svg>
+    <span>
+      <span class="brand-name">info<span>tek</span></span>
+      <span class="brand-tag">Brasil</span>
+    </span>
+  </a>
+  <nav aria-label="Navegação principal">
+    <a href="#sobre"        data-i="01">Sistema</a>
+    <a href="#produtos"     data-i="02">Arsenal</a>
+    <a href="#diferenciais" data-i="03">Diferenciais</a>
+    <a href="#numeros"      data-i="04">Dados</a>
+    <a href="#marcas"       data-i="05">Parceiros</a>
+    <a class="nav-cta" href="https://wa.me/551133110952?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20um%20or%C3%A7amento%20da%20Infotek%20Brasil." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>(11) 3311-0952</a>
+  </nav>
+</header>
+
+<main id="topo">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" aria-label="Apresentação">
+    <p class="hero-kicker rev">REFERÊNCIA EM AUTOMAÇÃO COMERCIAL <b>///</b> INFORMÁTICA <b>///</b> CFTV</p>
+    <h1 class="rev d1" data-scramble>INFOTEK</h1>
+    <div class="hero-sub rev d2">
+      <span>Automação Comercial</span><i>◆</i>
+      <span>Informática</span><i>◆</i>
+      <span>Segurança Eletrônica</span>
+    </div>
+    <div class="hero-cta rev d3">
+      <a class="btn btn-fill magnet" href="#contato">Solicitar catálogo e preços</a>
+      <a class="btn btn-ghost magnet" href="https://wa.me/551133110952?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20um%20or%C3%A7amento%20da%20Infotek%20Brasil." target="_blank" rel="noopener">WhatsApp direto ↗</a>
+    </div>
+    <div class="hero-scroll">role para entrar em órbita</div>
+  </section>
+
+  <!-- ============ MARQUEE ============ -->
+  <div class="marquee" aria-hidden="true">
+    <div class="mq-track" id="mq">
+      <span><b>PDV</b> &amp; FRENTE DE CAIXA</span><i>●</i>
+      <span>IMPRESSORAS <b>TÉRMICAS</b></span><i>●</i>
+      <span>CFTV <b>HD / IP</b></span><i>●</i>
+      <span>LEITORES DE <b>CÓDIGO DE BARRAS</b></span><i>●</i>
+      <span>CABEAMENTO <b>ESTRUTURADO</b></span><i>●</i>
+      <span>EQUIPAMENTOS <b>HOMOLOGADOS</b></span><i>●</i>
+    </div>
+  </div>
+
+  <!-- ============ 01 SOBRE / SISTEMA ============ -->
+  <section id="sobre" data-sec="01 / SISTEMA">
+    <div class="sobre-grid">
+      <div>
+        <p class="eyebrow rev">01 — Sistema <em>// quem somos</em></p>
+        <h2 class="rev d1">Blindamos e otimizamos <span class="ln">o seu negócio</span>.</h2>
+        <p class="lead rev d2">A <strong>Infotek Brasil</strong> é especialista em automação
+          comercial, informática e segurança eletrônica. Atendemos pequenas, médias e grandes
+          empresas com soluções sob medida — <strong>da consultoria à instalação</strong>,
+          com suporte técnico próximo e ágil para que o seu negócio nunca pare.</p>
+        <div class="sobre-spec rev d3">
+          <div class="spec"><span class="spec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span><div><h4>Consultoria gratuita</h4>
+            <p>Mapeamos as necessidades reais do seu negócio antes de propor qualquer solução.</p></div></div>
+          <div class="spec"><span class="spec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span><div><h4>Marcas homologadas</h4>
+            <p>Trabalhamos exclusivamente com produtos certificados e com garantia de fábrica.</p></div></div>
+          <div class="spec"><span class="spec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div><h4>Instalação e treinamento</h4>
+            <p>Cuidamos da implantação completa e capacitamos a sua equipe no uso dos sistemas.</p></div></div>
+          <div class="spec"><span class="spec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg></span><div><h4>Suporte pós-venda ativo</h4>
+            <p>Acompanhamos a operação do seu negócio com suporte técnico contínuo e ágil.</p></div></div>
+        </div>
+      </div>
+      <div aria-hidden="true"><!-- órbita 3D ocupa este vão no desktop --></div>
+    </div>
+  </section>
+
+  <!-- ============ 02 PRODUTOS / ARSENAL ============ -->
+  <section id="produtos" data-sec="02 / ARSENAL">
+    <p class="eyebrow rev">02 — Arsenal <em>// soluções em destaque</em></p>
+    <h2 class="rev d1">Equipamentos de <span class="ln">alta durabilidade</span> para o ponto de venda.</h2>
+
+    <div class="prods rev d2">
+      <article class="prow" tabindex="0">
+        <div class="prow-head">
+          <span class="prow-i">P.01</span>
+          <h3 class="prow-t">Kits Computador</h3>
+          <span class="prow-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+        </div>
+        <div class="prow-body"><div class="prow-inner"><span></span>
+          <div class="prow-desc">CPUs configuradas para frente de caixa e retaguarda.
+            Alta velocidade para rodar sistemas ERP e PDV sem travamentos, em operação contínua.
+            <div class="tags"><span class="tag">Frente de caixa</span><span class="tag">Retaguarda</span>
+            <span class="tag">ERP / PDV</span></div>
+          </div></div></div>
+      </article>
+
+      <article class="prow" tabindex="0">
+        <div class="prow-head">
+          <span class="prow-i">P.02</span>
+          <h3 class="prow-t">Impressoras Térmicas</h3>
+          <span class="prow-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
+        </div>
+        <div class="prow-body"><div class="prow-inner"><span></span>
+          <div class="prow-desc">Impressoras de cupom fiscal e de etiquetas com rapidez e
+            nitidez no ponto de venda — prontas para o fluxo do seu caixa.
+            <div class="tags"><span class="tag">NFC-e</span><span class="tag">SAT</span>
+            <span class="tag">Etiquetas</span></div>
+          </div></div></div>
+      </article>
+
+      <article class="prow" tabindex="0">
+        <div class="prow-head">
+          <span class="prow-i">P.03</span>
+          <h3 class="prow-t">Acessórios para Loja</h3>
+          <span class="prow-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7" stroke-width="2.5"/></svg></span>
+        </div>
+        <div class="prow-body"><div class="prow-inner"><span></span>
+          <div class="prow-desc">Tudo o que orbita o caixa: leitores de código de barras,
+            gavetas de dinheiro automáticas, teclados programáveis e suportes.
+            <div class="tags"><span class="tag">Leitores</span><span class="tag">Gavetas</span>
+            <span class="tag">Teclados programáveis</span></div>
+          </div></div></div>
+      </article>
+
+      <article class="prow" tabindex="0">
+        <div class="prow-head">
+          <span class="prow-i">P.04</span>
+          <h3 class="prow-t">Segurança CFTV</h3>
+          <span class="prow-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        </div>
+        <div class="prow-body"><div class="prow-inner"><span></span>
+          <div class="prow-desc">Câmeras HD/IP, DVRs e NVRs modernos para monitoramento
+            completo e contínuo do seu negócio — do perímetro ao ponto de venda.
+            <div class="tags"><span class="tag">Câmeras HD / IP</span><span class="tag">DVR / NVR</span>
+            <span class="tag">Monitoramento</span></div>
+          </div></div></div>
+      </article>
+
+      <article class="prow" tabindex="0">
+        <div class="prow-head">
+          <span class="prow-i">P.05</span>
+          <h3 class="prow-t">Cabeamento Estruturado</h3>
+          <span class="prow-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6" stroke-width="2.5"/><line x1="6" y1="18" x2="6.01" y2="18" stroke-width="2.5"/></svg></span>
+        </div>
+        <div class="prow-body"><div class="prow-inner"><span></span>
+          <div class="prow-desc">Fios, conectores e infraestrutura de rede de alta qualidade
+            para ambientes corporativos e industriais — base sólida para toda a operação.
+            <div class="tags"><span class="tag">Redes</span><span class="tag">Conectores</span>
+            <span class="tag">Infraestrutura</span></div>
+          </div></div></div>
+      </article>
+
+      <article class="prow" tabindex="0">
+        <div class="prow-head">
+          <span class="prow-i">P.06</span>
+          <h3 class="prow-t">Manutenção &amp; Suporte</h3>
+          <span class="prow-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+        </div>
+        <div class="prow-body"><div class="prow-inner"><span></span>
+          <div class="prow-desc">Equipe técnica especializada em manutenção preventiva e
+            corretiva para todo o parque tecnológico da sua empresa.
+            <div class="tags"><span class="tag">Preventiva</span><span class="tag">Corretiva</span>
+            <span class="tag">Equipe própria</span></div>
+          </div></div></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ 03 DIFERENCIAIS ============ -->
+  <section id="diferenciais" data-sec="03 / DIFERENCIAIS">
+    <p class="eyebrow rev">03 — Diferenciais <em>// por que a infotek</em></p>
+    <h2 class="rev d1">Compromisso com qualidade, <span class="ln">prazo e atendimento</span>.</h2>
+    <div class="dgrid">
+      <div class="dcard rev d1">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <h3>Equipamentos homologados</h3>
+        <p>Marcas líderes e produtos com garantia de fábrica. Qualidade comprovada no mercado nacional.</p>
+      </div>
+      <div class="dcard rev d2">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <h3>Atendimento consultivo</h3>
+        <p>Entendemos profundamente o seu negócio antes de propor soluções. Sem empurroterapia.</p>
+      </div>
+      <div class="dcard rev d3">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+        <h3>Suporte técnico próprio</h3>
+        <p>Equipe interna treinada para resposta rápida. Nada de terceirização no pós-venda.</p>
+      </div>
+      <div class="dcard rev d4">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+        <h3>Entrega para todo o Brasil</h3>
+        <p>Logística estruturada com prazos confiáveis para qualquer estado do país.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 NÚMEROS ============ -->
+  <section id="numeros" data-sec="04 / DADOS">
+    <p class="eyebrow rev">04 — Dados <em>// leitura do sistema</em></p>
+    <h2 class="rev d1">Tecnologia que <span class="ln">não pisca</span>.</h2>
+    <div class="stats rev d2">
+      <div class="stat"><b>+<span class="count" data-to="10">0</span><small> ANOS</small></b>
+        <span>de mercado ao lado do varejo brasileiro</span></div>
+      <div class="stat"><b>+<span class="count" data-to="500">0</span><small> CLIENTES</small></b>
+        <span>ativos atendidos em todo o país</span></div>
+      <div class="stat"><b><span class="count" data-to="100">0</span><small>% SUPORTE</small></b>
+        <span>local, com equipe técnica própria</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 04 MARCAS ============ -->
+  <section id="marcas" data-sec="05 / PARCEIROS">
+    <p class="eyebrow rev">05 — Parceiros <em>// marcas em órbita</em></p>
+    <h2 class="rev d1">As marcas que <span class="ln">representamos</span>.</h2>
+    <div class="brands-wrap rev d2" aria-label="Marcas parceiras">
+      <div class="br-track" id="brTrack">
+        <span class="chip">Epson</span><span class="chip">Bematech</span>
+        <span class="chip">Elgin</span><span class="chip">Gertec</span>
+        <span class="chip">Intelbras</span><span class="chip">Hikvision</span>
+        <span class="chip">Dahua</span><span class="chip">Positivo</span>
+        <span class="chip">HP</span><span class="chip">Brother</span>
+      </div>
+    </div>
+    <p class="brands-note rev d3">▸ Catálogo completo e disponibilidade sob consulta via WhatsApp.</p>
+  </section>
+
+  <!-- ============ 05 CONTATO ============ -->
+  <section id="contato" class="contato" data-sec="06 / CONTATO">
+    <p class="eyebrow rev" style="justify-content:center">06 — Contato <em>// abrir canal</em></p>
+    <h2 class="rev d1">Pronto para colocar sua loja <span class="ln">em órbita</span>?</h2>
+    <p class="lead rev d2" style="margin-inline:auto">Solicite um orçamento ou tire suas dúvidas.
+      Nossa equipe responde em horário comercial, com o catálogo completo de automação,
+      informática e CFTV.</p>
+
+    <div class="ct-card rev d3">
+      <a class="ct-num" href="https://wa.me/551133110952?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20um%20or%C3%A7amento%20da%20Infotek%20Brasil." target="_blank" rel="noopener" data-scramble>(11) 3311-0952</a>
+      <div class="ct-grid">
+        <div class="cti"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></span>
+          <div><b>Telefone / WhatsApp</b><span>(11) 3311-0952</span></div></div>
+        <div class="cti"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+          <div><b>E-mail</b><span>contato@infotekbrasil.com.br</span></div></div>
+        <div class="cti"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+          <div><b>Localização</b><span>São Paulo — SP</span></div></div>
+        <div class="cti"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <div><b>Horário de atendimento</b><span>Seg a Sex, 8h às 18h</span></div></div>
+      </div>
+      <div class="ct-actions">
+        <a class="btn btn-fill magnet" href="https://wa.me/551133110952?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20um%20or%C3%A7amento%20da%20Infotek%20Brasil." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Conversar no WhatsApp</a>
+        <a class="btn btn-ghost magnet" href="mailto:contato@infotekbrasil.com.br"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Enviar e-mail</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span><b>© 2026 Infotek Brasil</b> — todos os direitos reservados</span>
+  <span>Informática · Automação Comercial · CFTV</span>
+  <span>ORB.SYS <b>v2.6</b> // São Paulo, BR</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   INFOTEK ORB.SYS — interações & cena 3D
+   ============================================================ */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isTouch = matchMedia('(hover: none)').matches;
+const lerp = (a,b,t)=>a+(b-a)*t;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- 0. duplica marquees para loop infinito ---------- */
+['mq','brTrack'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.innerHTML += el.innerHTML;
+});
+
+/* ---------- 1. PRELOADER ---------- */
+const loader=document.getElementById('loader'),
+      ldNum=document.getElementById('ldNum'),
+      ldBoot=document.getElementById('ldBoot');
+const bootMsgs=['INICIALIZANDO <b>ORB.SYS</b>','CARREGANDO <b>PARTÍCULAS</b>',
+  'CALIBRANDO <b>ÓRBITA</b>','SINCRONIZANDO <b>PDV // CFTV</b>','INFOTEK <b>ONLINE</b>'];
+let ldVal=0, bootIdx=0;
+function bootTick(){
+  if(ldVal>=100){
+    ldNum.textContent='100'; ldBoot.innerHTML=bootMsgs[4];
+    setTimeout(()=>{loader.classList.add('done'); startIntro();},420);
+    return;
+  }
+  ldVal=Math.min(100, ldVal + (reduce?34:Math.random()*9+3));
+  ldNum.textContent=String(Math.floor(ldVal)).padStart(3,'0');
+  if(ldVal>bootIdx*25 && bootIdx<4){ldBoot.innerHTML=bootMsgs[bootIdx++];}
+  setTimeout(bootTick, reduce?30:90+Math.random()*70);
+}
+bootTick();
+
+/* ---------- 2. SCRAMBLE de texto ---------- */
+const GLYPHS='!<>-_/[]{}—=+*^?#01∆◆';
+function scramble(el){
+  if(reduce) return;
+  const final=el.dataset.final||(el.dataset.final=el.textContent);
+  let frame=0; const total=final.length*3+12;
+  const id=setInterval(()=>{
+    frame++;
+    el.textContent=final.split('').map((ch,i)=>{
+      if(ch===' ')return ' ';
+      if(frame/3>i) return ch;
+      return GLYPHS[Math.floor(Math.random()*GLYPHS.length)];
+    }).join('');
+    if(frame>=total){el.textContent=final;clearInterval(id);}
+  },30);
+}
+function startIntro(){
+  document.querySelectorAll('.hero .rev').forEach(e=>e.classList.add('on'));
+  document.querySelectorAll('[data-scramble]').forEach(scramble);
+}
+
+/* ---------- 3. REVEAL + nav ativa + HUD seção ---------- */
+const hudSec=document.getElementById('hudSec');
+const navLinks=[...document.querySelectorAll('nav a[data-i]')];
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting) e.target.classList.add('on');
+}),{threshold:.15});
+document.querySelectorAll('main .rev:not(.hero .rev)').forEach(el=>io.observe(el));
+
+const secIO=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting) return;
+  const tag=e.target.dataset.sec;
+  if(tag) hudSec.innerHTML='SEÇÃO <b>'+tag+'</b>';
+  navLinks.forEach(a=>a.classList.toggle('act', a.hash==='#'+e.target.id));
+}),{threshold:.4});
+document.querySelectorAll('section[data-sec]').forEach(s=>secIO.observe(s));
+
+/* ---------- 4. CONTADORES ---------- */
+const cntIO=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting) return; cntIO.unobserve(e.target);
+  const to=+e.target.dataset.to, t0=performance.now(), dur=reduce?1:1500;
+  (function step(t){
+    const p=clamp((t-t0)/dur,0,1), ease=1-Math.pow(1-p,3);
+    e.target.textContent=Math.round(to*ease);
+    if(p<1) requestAnimationFrame(step);
+  })(t0);
+}),{threshold:.6});
+document.querySelectorAll('.count').forEach(c=>cntIO.observe(c));
+
+/* ---------- 5. CURSOR + MAGNÉTICO ---------- */
+if(!isTouch){
+  const cur=document.getElementById('cur'), curR=document.getElementById('curR');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;
+    cur.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;});
+  (function follow(){rx=lerp(rx,mx,.16);ry=lerp(ry,my,.16);
+    curR.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;
+    requestAnimationFrame(follow);})();
+  document.querySelectorAll('a,button,.prow,.chip,.stat').forEach(el=>{
+    el.addEventListener('mouseenter',()=>curR.classList.add('hot'));
+    el.addEventListener('mouseleave',()=>curR.classList.remove('hot'));
+  });
+  document.querySelectorAll('.magnet').forEach(b=>{
+    b.addEventListener('mousemove',e=>{
+      const r=b.getBoundingClientRect();
+      b.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.18}px,${(e.clientY-r.top-r.height/2)*.3}px)`;
+    });
+    b.addEventListener('mouseleave',()=>b.style.transform='');
+  });
+}else{
+  document.getElementById('cur').remove();
+  document.getElementById('curR').remove();
+}
+
+/* ---------- 6. SCROLL HUD ---------- */
+const bar=document.getElementById('bar'), pctEl=document.getElementById('scrollPct');
+let scrollP=0;
+function onScroll(){
+  const h=document.documentElement.scrollHeight-innerHeight;
+  scrollP=h>0?clamp(scrollY/h,0,1):0;
+  bar.style.width=(scrollP*100)+'%';
+  pctEl.textContent=String(Math.round(scrollP*100)).padStart(3,'0');
+}
+addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+/* ============================================================
+   7. CENA 3D — esfera de partículas + anel orbital (Three r128)
+   ============================================================ */
+if(window.THREE){
+  const cvs=document.getElementById('orb');
+  const renderer=new THREE.WebGLRenderer({canvas:cvs,alpha:true,antialias:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,100);
+  camera.position.z=8;
+
+  /* sprite circular suave gerado em canvas */
+  function dotTexture(){
+    const c=document.createElement('canvas');c.width=c.height=64;
+    const g=c.getContext('2d'),grd=g.createRadialGradient(32,32,0,32,32,32);
+    grd.addColorStop(0,'rgba(255,255,255,1)');
+    grd.addColorStop(.35,'rgba(255,255,255,.8)');
+    grd.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=grd;g.fillRect(0,0,64,64);
+    return new THREE.CanvasTexture(c);
+  }
+  const tex=dotTexture();
+  const small=innerWidth<760;
+  const cDeep=new THREE.Color('#0A2C8F'), cBlue=new THREE.Color('#1466F0'),
+        cCyan=new THREE.Color('#22C8FF'), cIce=new THREE.Color('#A9D6F2');
+
+  function cloud(n,fill,size,opacity){
+    const pos=new Float32Array(n*3), col=new Float32Array(n*3), tmp=new THREE.Color();
+    for(let i=0;i<n;i++) fill(i,pos,col,tmp);
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const mat=new THREE.PointsMaterial({size,map:tex,vertexColors:true,transparent:true,
+      opacity,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+    return new THREE.Points(geo,mat);
+  }
+
+  /* esfera — distribuição de Fibonacci */
+  const NS=small?2800:6200, R=2.25, PHI=Math.PI*(3-Math.sqrt(5));
+  const sphere=cloud(NS,(i,pos,col,tmp)=>{
+    const y=1-(i/(NS-1))*2, r=Math.sqrt(1-y*y), th=PHI*i;
+    pos[i*3]=Math.cos(th)*r*R; pos[i*3+1]=y*R; pos[i*3+2]=Math.sin(th)*r*R;
+    tmp.copy(cDeep).lerp(cBlue,(y+1)/2).lerp(cCyan,Math.random()*.35);
+    if(Math.random()<.05) tmp.copy(cIce);                 /* faíscas de gelo */
+    col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;
+  },small?.05:.045,.95);
+
+  /* anel orbital — eco do swoosh da logomarca */
+  const NR=small?700:1500;
+  const ring=cloud(NR,(i,pos,col,tmp)=>{
+    const a=Math.random()*Math.PI*2, rr=3.4+ (Math.random()-.5)*.32;
+    pos[i*3]=Math.cos(a)*rr; pos[i*3+1]=(Math.random()-.5)*.12; pos[i*3+2]=Math.sin(a)*rr;
+    tmp.copy(cCyan).lerp(cIce,Math.random());
+    col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;
+  },small?.045:.04,.85);
+  ring.rotation.set(-.5,0,.35);
+
+  /* poeira estelar distante */
+  const ND=small?320:700;
+  const dust=cloud(ND,(i,pos,col,tmp)=>{
+    pos[i*3]=(Math.random()-.5)*36; pos[i*3+1]=(Math.random()-.5)*22;
+    pos[i*3+2]=-6-Math.random()*14;
+    tmp.copy(cBlue).lerp(cIce,Math.random()*.6);
+    col[i*3]=tmp.r;col[i*3+1]=tmp.g;col[i*3+2]=tmp.b;
+  },.05,.4);
+
+  const group=new THREE.Group();
+  group.add(sphere,ring);
+  scene.add(group,dust);
+
+  /* coreografia da órbita por seção (progresso 0→1 da página) */
+  const stops=[
+    {p:0.00,x: 0.0,y:-0.15,s:1.00,o:.95},   /* hero — centro, atrás do título   */
+    {p:0.13,x: 2.4,y: 0.05,s:0.80,o:.90},   /* sistema — desliza p/ a direita   */
+    {p:0.36,x:-2.7,y: 0.25,s:0.55,o:.50},   /* arsenal — recua à esquerda       */
+    {p:0.56,x: 2.5,y: 0.00,s:0.65,o:.70},   /* diferenciais — direita           */
+    {p:0.72,x: 0.0,y: 0.00,s:1.55,o:.85},   /* dados — engole a tela            */
+    {p:0.86,x:-2.3,y:-0.30,s:0.72,o:.80},   /* parceiros — esquerda             */
+    {p:1.00,x: 0.0,y: 0.45,s:0.95,o:.95}    /* contato — volta ao centro        */
+  ];
+  function pose(p){
+    let a=stops[0],b=stops[stops.length-1];
+    for(let i=0;i<stops.length-1;i++)
+      if(p>=stops[i].p&&p<=stops[i+1].p){a=stops[i];b=stops[i+1];break;}
+    const t=(p-a.p)/((b.p-a.p)||1), e=t*t*(3-2*t);  /* smoothstep */
+    return {x:lerp(a.x,b.x,e),y:lerp(a.y,b.y,e),s:lerp(a.s,b.s,e),o:lerp(a.o,b.o,e)};
+  }
+
+  let mTX=0,mTY=0,mX=0,mY=0;
+  if(!isTouch) addEventListener('mousemove',e=>{
+    mTX=(e.clientX/innerWidth-.5)*2; mTY=(e.clientY/innerHeight-.5)*2;
+  });
+
+  let cx=0,cy=0,cs=1,co=.95;
+  const clock=new THREE.Clock();
+  function frame(){
+    requestAnimationFrame(frame);
+    const t=clock.getElapsedTime();
+    const tgt=pose(scrollP);
+    const aspectF=clamp(innerWidth/innerHeight/1.45,0.35,1); /* recolhe X em telas estreitas */
+    cx=lerp(cx,tgt.x*aspectF,.05); cy=lerp(cy,tgt.y,.05);
+    cs=lerp(cs,tgt.s,.05);          co=lerp(co,tgt.o,.05);
+    group.position.set(cx,cy,0);
+    const breath=1+Math.sin(t*.9)*.025;
+    group.scale.setScalar(cs*breath);
+    sphere.material.opacity=co; ring.material.opacity=co*.9;
+
+    if(!reduce){
+      sphere.rotation.y=t*.16+scrollP*3.4;
+      sphere.rotation.x=Math.sin(t*.25)*.12;
+      ring.rotation.y=-t*.3-scrollP*2.2;
+      dust.rotation.y=t*.012;
+    }
+    mX=lerp(mX,mTX,.04); mY=lerp(mY,mTY,.04);
+    camera.position.x=mX*.7; camera.position.y=-mY*.45;
+    camera.lookAt(0,0,0);
+    renderer.render(scene,camera);
+  }
+  function resize(){
+    renderer.setSize(innerWidth,innerHeight);
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize',resize); resize(); frame();
+}
+</script>
+</body>
+</html>
